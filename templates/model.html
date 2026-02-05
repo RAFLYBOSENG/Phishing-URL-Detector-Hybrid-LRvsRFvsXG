@@ -1,0 +1,153 @@
+{% extends "base.html" %} {% set title = "Model" %} {% block content %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section class="lg:col-span-2">
+    <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Artifacts & Status</h1>
+      <p class="mt-2 text-slate-600">
+        Untuk mode hybrid, idealnya kedua model siap: full-feature untuk URL
+        yang ada di dataset, dan url-only untuk URL eksternal.
+      </p>
+
+      <!-- <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="text-xs text-slate-500">Artifacts dir</div>
+          <div class="mt-1 font-medium break-all">{{ info.artifacts_dir }}</div>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="text-xs text-slate-500">Dataset path</div>
+          <div class="mt-1 font-medium break-all">{{ info.dataset_path }}</div>
+        </div>
+      </div> -->
+
+      <div class="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 class="text-sm font-semibold">Full-feature</h2>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <span
+            class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset
+            {{ 'bg-emerald-50 text-emerald-700 ring-emerald-200' if full_ready else 'bg-amber-50 text-amber-800 ring-amber-200' }}"
+          >
+            {{ 'READY' if full_ready else 'NOT READY' }}
+          </span>
+          <span class="text-xs text-slate-600"
+            >Best: {{ info.full.best_model_name if info.full.best_model_name
+            else "—" }} • Thr: {{ '%.2f'|format(info.full.threshold_value) if
+            info.full.threshold_value else "—" }}</span
+          >
+        </div>
+        {% if info.full.errors %}
+        <ul class="mt-2 text-xs text-red-700 list-disc pl-5 space-y-1">
+          {% for e in info.full.errors %}
+          <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 class="text-sm font-semibold">URL-only</h2>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <span
+            class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset
+            {{ 'bg-emerald-50 text-emerald-700 ring-emerald-200' if urlonly_ready else 'bg-amber-50 text-amber-800 ring-amber-200' }}"
+          >
+            {{ 'READY' if urlonly_ready else 'NOT READY' }}
+          </span>
+          <span class="text-xs text-slate-600"
+            >Best: {{ info.urlonly.best_model_name if
+            info.urlonly.best_model_name else "—" }} • Thr: {{
+            '%.2f'|format(info.urlonly.threshold_value) if
+            info.urlonly.threshold_value else "—" }}</span
+          >
+        </div>
+        {% if info.urlonly.errors %}
+        <ul class="mt-2 text-xs text-red-700 list-disc pl-5 space-y-1">
+          {% for e in info.urlonly.errors %}
+          <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <!-- <div class="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 class="text-sm font-semibold">Cara jalankan</h2>
+        <ol class="mt-2 text-sm text-slate-700 list-decimal pl-5 space-y-2">
+          <li>
+            Taruh dataset CSV kamu di folder
+            <span class="font-mono text-xs">dataset/</span>.
+          </li>
+          <li>
+            Taruh artifacts full-feature di
+            <span class="font-mono text-xs">artifacts/</span>
+            (model_pipeline.joblib, feature_schema.json, best_threshold.json).
+          </li>
+          <li>
+            Jalankan notebook URL-only dan simpan artifacts-nya
+            (model_urlonly.joblib, feature_schema_urlonly.json,
+            best_threshold_urlonly.json).
+          </li>
+          <li>
+            Install:
+            <span class="font-mono text-xs"
+              >pip install -r requirements.txt</span
+            >
+          </li>
+          <li>
+            Run: <span class="font-mono text-xs">python app.py</span> → buka
+            <span class="font-mono text-xs">http://127.0.0.1:5000</span>
+          </li>
+        </ol>
+      </div>-->
+    </div>
+  </section> 
+
+      <aside>
+        <div
+          class="bg-white rounded-2xl shadow-soft border border-slate-200 p-6"
+        >
+          <h2 class="text-base font-semibold">
+            Top Feature Importance (opsional)
+          </h2>
+          <p class="mt-1 text-sm text-slate-600">
+            Mengambil 15 teratas dari
+            <span class="font-mono text-xs">feature_importance.csv</span> (jika
+            ada).
+          </p>
+
+          {% if info.feature_importance_top %}
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="text-left text-slate-500">
+                <tr>
+                  <th class="py-2 pr-4">Feature</th>
+                  <th class="py-2">Importance</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {% for r in info.feature_importance_top %}
+                <tr>
+                  <td class="py-2 pr-4 font-medium text-slate-800">
+                    {{ r.feature }}
+                  </td>
+                  <td class="py-2 text-slate-700">
+                    {{ '%.6f'|format(r.importance) }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div
+            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+          >
+            File belum tersedia (opsional).
+          </div>
+          {% endif %}
+        </div>
+      </aside>
+    </div>
+
+    {% endblock %}
+  </section>
+</div>

@@ -1,0 +1,39 @@
+{
+  "best_model": "XGBoost",
+  "best_threshold_by_f1": 0.30999999999999994,
+  "all_models": {
+    "LogReg": {
+      "roc_auc": 0.9964663352894679,
+      "best_threshold_by_f1": 0.3999999999999999,
+      "metrics_at_best_thr": {
+        "thr": 0.3999999999999999,
+        "f1": 0.9912411665173684,
+        "accuracy": 0.9925358892258106,
+        "precision": 0.9959497974898744,
+        "recall": 0.9865768487790381
+      }
+    },
+    "RandomForest": {
+      "roc_auc": 0.9980280472633356,
+      "best_threshold_by_f1": 0.58,
+      "metrics_at_best_thr": {
+        "thr": 0.58,
+        "f1": 0.9945822356975993,
+        "accuracy": 0.9953773404864394,
+        "precision": 0.9980547658237319,
+        "recall": 0.9911337857248997
+      }
+    },
+    "XGBoost": {
+      "roc_auc": 0.998369551233612,
+      "best_threshold_by_f1": 0.30999999999999994,
+      "metrics_at_best_thr": {
+        "thr": 0.30999999999999994,
+        "f1": 0.9954036125121121,
+        "accuracy": 0.9960771008715198,
+        "precision": 0.998604187437687,
+        "recall": 0.9922234880380405
+      }
+    }
+  }
+}

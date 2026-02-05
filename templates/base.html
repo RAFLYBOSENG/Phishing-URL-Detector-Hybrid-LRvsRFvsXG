@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title if title else "Phishing URL Detector (Hybrid)" }}</title>
+
+    <!-- Tailwind CDN (butuh internet untuk load) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: { boxShadow: { soft: "0 10px 30px rgba(0,0,0,0.08)" } },
+        },
+      };
+    </script>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <header
+      class="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600"
+    >
+      <div class="mx-auto max-w-6xl px-4 py-6">
+        <div class="flex items-center justify-between gap-4">
+          <a
+            href="{{ url_for('index') }}"
+            class="text-white font-semibold tracking-tight text-lg"
+          >
+            Phishing URL Detector
+            <span class="text-white/70 font-medium">Hybrid</span>
+          </a>
+          <nav class="flex gap-3 text-sm">
+            <a
+              href="{{ url_for('index') }}"
+              class="text-white/90 hover:text-white"
+              >Predict</a
+            >
+            <a
+              href="{{ url_for('dataset') }}"
+              class="text-white/90 hover:text-white"
+              >Dataset</a
+            >
+            <!-- <a href="{{ url_for('model') }}" class="text-white/90 hover:text-white">Model</a> -->
+          </nav>
+        </div>
+        <p class="mt-2 text-white/80 text-sm">
+          Mode otomatis: dataset-match (full-feature) → fallback url-only untuk
+          URL eksternal
+        </p>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="space-y-2 mb-6">
+        {% for category, message in messages %}
+        <div
+          class="rounded-xl border p-4 {{ 'border-red-200 bg-red-50' if category=='error' else 'border-emerald-200 bg-emerald-50' }}"
+        >
+          <div class="text-sm">{{ message }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %} {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t bg-white">
+      <div
+        class="mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500 flex items-center justify-between"
+      >
+        <div>© {{ now_year }} — Prototipe Deteksi URL Phishing</div>
+        <a class="hover:text-slate-700" href="{{ url_for('health') }}"
+          >Health</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

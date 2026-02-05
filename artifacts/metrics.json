@@ -1,0 +1,33 @@
+{
+  "test_summary": [
+    {
+      "model": "LogReg",
+      "roc_auc": 1.0,
+      "best_thr_f1": 0.13,
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "accuracy": 1.0
+    },
+    {
+      "model": "RandomForest",
+      "roc_auc": 1.0,
+      "best_thr_f1": 0.3999999999999999,
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "accuracy": 1.0
+    },
+    {
+      "model": "XGBoost",
+      "roc_auc": 1.0,
+      "best_thr_f1": 0.05,
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "accuracy": 1.0
+    }
+  ],
+  "best_model": "LogReg",
+  "dataset_path": "dataset\\PhiUSIIL_Phishing_URL_Dataset.csv"
+}

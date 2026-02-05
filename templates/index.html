@@ -1,0 +1,151 @@
+{% extends "base.html" %} {% set title = "Predict — Hybrid" %} {% block content
+%}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section class="lg:col-span-2">
+    <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
+      <h1 class="text-2xl font-semibold tracking-tight">
+        Prediksi URL (Hybrid)
+      </h1>
+      <p class="mt-2 text-slate-600">
+        Tidak ada upload CSV. Sistem memilih mode:
+        <span class="font-medium">dataset-match (full-feature)</span> jika URL
+        ada di dataset, atau <span class="font-medium">url-only</span> jika URL
+        baru/eksternal.
+      </p>
+
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="text-xs text-slate-500">Dataset</div>
+          <div class="mt-1 font-medium break-all">
+            ("PhiUSIIL_Phishing_URL_Dataset.csv")
+          </div>
+          <div class="mt-2 text-xs text-slate-500">
+            Rows: {{ info.n_rows if info.n_rows else "-" }} • URL index: {{
+            info.url_index_size }}
+          </div>
+          {% if info.dataset_errors %}
+          <div class="mt-2 text-xs text-red-700">
+            {{ info.dataset_errors[0] }}
+          </div>
+          {% endif %}
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="text-xs text-slate-500">Readiness</div>
+          <div class="mt-1 flex flex-wrap gap-2">
+            <span
+              class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset
+              {{ 'bg-emerald-50 text-emerald-700 ring-emerald-200' if full_ready else 'bg-amber-50 text-amber-800 ring-amber-200' }}"
+            >
+              Full-feature: {{ 'READY' if full_ready else 'NOT READY' }}
+            </span>
+            <span
+              class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset
+              {{ 'bg-emerald-50 text-emerald-700 ring-emerald-200' if urlonly_ready else 'bg-amber-50 text-amber-800 ring-amber-200' }}"
+            >
+              URL-only: {{ 'READY' if urlonly_ready else 'NOT READY' }}
+            </span>
+          </div>
+          <p class="mt-2 text-xs text-slate-500">
+            Untuk URL eksternal, URL-only harus READY.
+          </p>
+        </div>
+      </div>
+
+      <form
+        method="POST"
+        action="{{ url_for('predict') }}"
+        class="mt-6 space-y-4"
+      >
+        <label class="block">
+          <span class="text-sm font-medium text-slate-700">URL</span>
+          <input
+            name="url"
+            type="text"
+            placeholder="https://example.com/login"
+            class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </label>
+
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="submit"
+            class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-soft hover:bg-indigo-700"
+          >
+            Predict
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6 text-xs text-slate-500">
+        <div class="flex flex-wrap gap-2">
+          <span
+            >Full best:
+            <span class="font-medium"
+              >{{ info.full.best_model_name if info.full.best_model_name else
+              "—" }}</span
+            ></span
+          >
+          <span
+            >• Thr:
+            <span class="font-medium"
+              >{{ '%.2f'|format(info.full.threshold_value) if
+              info.full.threshold_value else "—" }}</span
+            ></span
+          >
+        </div>
+        <div class="flex flex-wrap gap-2 mt-1">
+          <span
+            >URL-only best:
+            <span class="font-medium"
+              >{{ info.urlonly.best_model_name if info.urlonly.best_model_name
+              else "—" }}</span
+            ></span
+          >
+          <span
+            >• Thr:
+            <span class="font-medium"
+              >{{ '%.2f'|format(info.urlonly.threshold_value) if
+              info.urlonly.threshold_value else "—" }}</span
+            ></span
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
+      <h2 class="text-base font-semibold">Cara demo cepat</h2>
+      <ol class="mt-3 text-sm text-slate-600 list-decimal pl-5 space-y-2">
+        <li>
+          Coba URL yang ada di dataset → sistem pakai
+          <span class="font-medium">full-feature</span>.
+        </li>
+        <li>
+          Coba URL baru (mis. domain random) → sistem pakai
+          <span class="font-medium">url-only</span>.
+        </li>
+      </ol>
+
+      <form method="POST" action="{{ url_for('random_pick') }}" class="mt-6">
+        <button
+          type="submit"
+          class="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+        >
+          Random sample dari dataset
+        </button>
+      </form>
+
+      <div class="mt-6 rounded-xl bg-slate-50 border border-slate-200 p-4">
+        <h3 class="text-sm font-semibold">Catatan</h3>
+        <p class="mt-1 text-sm text-slate-600">
+          Mode url-only menghitung fitur dari string URL (tanpa crawling). Ini
+          membuat sistem bisa memproses URL di luar dataset.
+        </p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

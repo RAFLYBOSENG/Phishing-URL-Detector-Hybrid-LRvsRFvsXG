@@ -1,0 +1,39 @@
+{
+  "best_model": "LogReg",
+  "best_threshold_by_f1": 0.13,
+  "all_models": {
+    "LogReg": {
+      "roc_auc": 1.0,
+      "best_threshold_by_f1": 0.13,
+      "metrics_at_best_thr": {
+        "thr": 0.13,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "RandomForest": {
+      "roc_auc": 1.0,
+      "best_threshold_by_f1": 0.3999999999999999,
+      "metrics_at_best_thr": {
+        "thr": 0.3999999999999999,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "XGBoost": {
+      "roc_auc": 1.0,
+      "best_threshold_by_f1": 0.05,
+      "metrics_at_best_thr": {
+        "thr": 0.05,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    }
+  }
+}

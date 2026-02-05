@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% set title = "Random Sample" %}
+{% block content %}
+<div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Contoh URL (Random Sample)</h1>
+  <p class="mt-2 text-slate-600">URL di bawah diambil dari dataset. Klik Predict untuk melihat hasil.</p>
+
+  <form method="POST" action="{{ url_for('predict') }}" class="mt-6 space-y-4">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700">URL</span>
+      <input name="url" type="text" value="{{ url_input }}"
+        class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+    </label>
+
+    <div class="flex gap-3">
+      <button type="submit"
+        class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-soft hover:bg-indigo-700">
+        Predict
+      </button>
+      <a href="{{ url_for('index') }}"
+        class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+        Back
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}
