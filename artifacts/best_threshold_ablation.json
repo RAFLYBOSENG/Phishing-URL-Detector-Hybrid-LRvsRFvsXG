@@ -1,0 +1,4 @@
+{
+  "best_model": "XGBoost",
+  "best_threshold_by_f1": 0.25999999999999995
+}

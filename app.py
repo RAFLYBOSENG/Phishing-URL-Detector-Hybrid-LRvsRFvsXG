@@ -25,13 +25,20 @@ DEFAULT_DATASET_PATH = BASE_DIR / "dataset" / "PhiUSIIL_Phishing_URL_Dataset.csv
 DEFAULT_ARTIFACTS_DIR = BASE_DIR / "artifacts"
 
 DATASET_PATH = Path(os.getenv("PHISH_DATASET_PATH", str(DEFAULT_DATASET_PATH)))
-ARTIFACTS_DIR = Path(os.getenv("PHISH_ARTIFACTS_DIR", str(DEFAULT_ARTIFACTS_DIR)))
+ARTIFACTS_DIR = Path(
+    os.getenv("PHISH_ARTIFACTS_DIR", str(DEFAULT_ARTIFACTS_DIR)))
 
 # Full-feature artifacts (dari notebook full-feature)
 FULL_MODEL_PATH = ARTIFACTS_DIR / "model_pipeline.joblib"
 FULL_SCHEMA_PATH = ARTIFACTS_DIR / "feature_schema.json"
 FULL_THRESH_PATH = ARTIFACTS_DIR / "best_threshold.json"
 FULL_VERSIONS_PATH = ARTIFACTS_DIR / "versions_full.json"
+
+# Full-feature (ablated / leakage-reduced) artifacts (optional)
+FULL_ABL_MODEL_PATH = ARTIFACTS_DIR / "model_pipeline_ablation.joblib"
+FULL_ABL_SCHEMA_PATH = ARTIFACTS_DIR / "feature_schema_ablation.json"
+FULL_ABL_THRESH_PATH = ARTIFACTS_DIR / "best_threshold_ablation.json"
+FULL_ABL_VERSIONS_PATH = ARTIFACTS_DIR / "versions_ablation.json"
 
 # URL-only artifacts (fallback, dari notebook hybrid)
 URLONLY_MODEL_PATH = ARTIFACTS_DIR / "model_urlonly.joblib"
@@ -61,6 +68,8 @@ SUSPICIOUS_KEYWORDS = [
 # ==========================================================
 # Helpers
 # ==========================================================
+
+
 def normalize_url(u: str) -> str:
     """Normalization ringan untuk pencarian di dataset."""
     if u is None:
@@ -70,6 +79,7 @@ def normalize_url(u: str) -> str:
     if len(u) > 1 and u.endswith("/"):
         u = u[:-1]
     return u
+
 
 def candidate_lookup_keys(user_url: str) -> List[str]:
     """Generate kandidat normalisasi untuk meningkatkan kemungkinan match di dataset."""
@@ -98,6 +108,7 @@ def candidate_lookup_keys(user_url: str) -> List[str]:
     keys |= {strip_www(k) for k in list(keys)}
     return [k for k in keys if k]
 
+
 def safe_read_json(path: Path) -> Optional[Dict[str, Any]]:
     if not path.exists():
         return None
@@ -105,6 +116,22 @@ def safe_read_json(path: Path) -> Optional[Dict[str, Any]]:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def to_jsonable(value: Any) -> Any:
+    """Convert numpy/pandas scalars to JSON-serializable Python types."""
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, dict):
+        return {k: to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [to_jsonable(v) for v in value]
+    if isinstance(value, tuple):
+        return [to_jsonable(v) for v in value]
+    return value
+
 
 def autodetect_dataset_path() -> Path:
     """Kalau path default tidak ada, cari CSV pertama di dataset/ atau data/."""
@@ -115,6 +142,7 @@ def autodetect_dataset_path() -> Path:
         if folder.exists():
             candidates.extend(sorted(folder.glob("*.csv")))
     return candidates[0] if candidates else DATASET_PATH
+
 
 def explain_sklearn_pickle_error(e: Exception, versions_path: Path) -> str:
     msg = str(e)
@@ -128,6 +156,7 @@ def explain_sklearn_pickle_error(e: Exception, versions_path: Path) -> str:
             extra = " (Kemungkinan mismatch scikit-learn. Samakan versi scikit-learn antara notebook training dan Flask)"
     return msg + extra
 
+
 def shannon_entropy(s: str) -> float:
     if not s:
         return 0.0
@@ -140,6 +169,7 @@ def shannon_entropy(s: str) -> float:
         p = c / n
         ent -= p * math.log2(p)
     return float(ent)
+
 
 def compute_urlonly_features(url: str) -> Dict[str, Any]:
     """Hitung fitur URL-only + kebaruan (tanpa crawling)."""
@@ -185,7 +215,8 @@ def compute_urlonly_features(url: str) -> Dict[str, Any]:
     except Exception:
         is_domain_ip = 0
 
-    n_sub = 0 if subdomain.strip() == "" else len([x for x in subdomain.split(".") if x])
+    n_sub = 0 if subdomain.strip() == "" else len(
+        [x for x in subdomain.split(".") if x])
 
     letters = sum(ch.isalpha() for ch in u)
     digits = sum(ch.isdigit() for ch in u)
@@ -241,6 +272,8 @@ def compute_urlonly_features(url: str) -> Dict[str, Any]:
 # ==========================================================
 # Auto-calibration helpers (fix class mapping & threshold)
 # ==========================================================
+
+
 def _get_classes(model) -> Optional[List[Any]]:
     classes = getattr(model, "classes_", None)
     if classes is not None:
@@ -249,8 +282,10 @@ def _get_classes(model) -> Optional[List[Any]]:
         return list(getattr(model.named_steps["clf"], "classes_", [])) or None
     return None
 
+
 def _best_threshold_by_f1(y_true: np.ndarray, proba: np.ndarray) -> Dict[str, float]:
-    best = {"thr": 0.5, "f1": -1.0, "precision": 0.0, "recall": 0.0, "accuracy": 0.0}
+    best = {"thr": 0.5, "f1": -1.0, "precision": 0.0,
+            "recall": 0.0, "accuracy": 0.0}
     for thr in np.linspace(0.05, 0.95, 91):
         pred = (proba >= thr).astype(int)
         tp = float(((pred == 1) & (y_true == 1)).sum())
@@ -259,7 +294,8 @@ def _best_threshold_by_f1(y_true: np.ndarray, proba: np.ndarray) -> Dict[str, fl
         fn = float(((pred == 0) & (y_true == 1)).sum())
         precision = tp / (tp + fp) if (tp + fp) else 0.0
         recall = tp / (tp + fn) if (tp + fn) else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+        f1 = 2 * precision * recall / \
+            (precision + recall) if (precision + recall) else 0.0
         acc = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) else 0.0
         if f1 > best["f1"]:
             best = {
@@ -270,6 +306,7 @@ def _best_threshold_by_f1(y_true: np.ndarray, proba: np.ndarray) -> Dict[str, fl
                 "accuracy": float(acc),
             }
     return best
+
 
 def calibrate_phishing(model, X: pd.DataFrame, y_true_phish01: np.ndarray, sample_n: int = 1500) -> Optional[Dict[str, Any]]:
     """Auto-calibration untuk mapping class + threshold."""
@@ -307,6 +344,7 @@ def calibrate_phishing(model, X: pd.DataFrame, y_true_phish01: np.ndarray, sampl
             best = cand
     return best
 
+
 def _prob_phishing(model, X: pd.DataFrame, calib: Optional[Dict[str, Any]]) -> float:
     proba = model.predict_proba(X)
     classes = _get_classes(model) or []
@@ -320,34 +358,91 @@ def _prob_phishing(model, X: pd.DataFrame, calib: Optional[Dict[str, Any]]) -> f
 # ==========================================================
 # Load Assets
 # ==========================================================
-def load_full_assets() -> Tuple[Optional[object], Dict[str, Any]]:
-    info: Dict[str, Any] = {"errors": [], "calibration": None}
+
+
+def load_full_assets(variant: str = "auto") -> Tuple[Optional[object], Dict[str, Any]]:
+    """Load full-feature model assets.
+
+    variant:
+      - "full": pakai model_pipeline.joblib
+      - "ablation": pakai model_pipeline_ablation.joblib (jika ada)
+      - "auto": jika ablation tersedia maka pakai ablation, kalau tidak pakai full
+    """
+    info: Dict[str, Any] = {"errors": []}
     pipeline = None
-    schema = safe_read_json(FULL_SCHEMA_PATH) or {}
-    thr = safe_read_json(FULL_THRESH_PATH) or {}
-    ver = safe_read_json(FULL_VERSIONS_PATH) or {}
+
+    variant = (variant or "auto").lower().strip()
+    if variant in ("ablated", "ablate"):
+        variant = "ablation"
+
+    # choose candidate paths
+    candidates = []
+    if variant == "ablation":
+        candidates.append(("ablation", FULL_ABL_MODEL_PATH, FULL_ABL_SCHEMA_PATH,
+                          FULL_ABL_THRESH_PATH, FULL_ABL_VERSIONS_PATH))
+    elif variant == "full":
+        candidates.append(("full", FULL_MODEL_PATH, FULL_SCHEMA_PATH,
+                          FULL_THRESH_PATH, FULL_VERSIONS_PATH))
+    else:  # auto
+        candidates.append(("ablation", FULL_ABL_MODEL_PATH, FULL_ABL_SCHEMA_PATH,
+                          FULL_ABL_THRESH_PATH, FULL_ABL_VERSIONS_PATH))
+        candidates.append(("full", FULL_MODEL_PATH, FULL_SCHEMA_PATH,
+                          FULL_THRESH_PATH, FULL_VERSIONS_PATH))
+
+    chosen = None
+    schema = {}
+    thr = {}
+    ver = {}
     fdict = safe_read_json(FULL_FEATURE_DICT) or {}
 
-    if FULL_MODEL_PATH.exists():
+    for name, m_path, s_path, t_path, v_path in candidates:
+        if not m_path.exists():
+            continue
         try:
-            pipeline = joblib.load(FULL_MODEL_PATH)
+            pipeline = joblib.load(m_path)
+            schema = safe_read_json(s_path) or {}
+            thr = safe_read_json(t_path) or {}
+            ver = safe_read_json(v_path) or {}
+            chosen = (name, m_path, s_path, t_path, v_path)
+            break
         except Exception as e:
-            info["errors"].append("Gagal load model_pipeline.joblib: " + explain_sklearn_pickle_error(e, FULL_VERSIONS_PATH))
-    else:
-        info["errors"].append(f"Full model tidak ditemukan: {FULL_MODEL_PATH}")
+            info["errors"].append(
+                f"Gagal load {m_path.name}: " +
+                explain_sklearn_pickle_error(e, v_path)
+            )
+
+    if chosen is None:
+        # collect missing info
+        info["errors"].append(
+            f"Full model tidak ditemukan. Cek artifacts: {FULL_MODEL_PATH.name} / {FULL_ABL_MODEL_PATH.name}"
+        )
+        # still load schema/thr if available (best-effort)
+        schema = safe_read_json(FULL_SCHEMA_PATH) or safe_read_json(
+            FULL_ABL_SCHEMA_PATH) or {}
+        thr = safe_read_json(FULL_THRESH_PATH) or safe_read_json(
+            FULL_ABL_THRESH_PATH) or {}
+        ver = safe_read_json(FULL_VERSIONS_PATH) or safe_read_json(
+            FULL_ABL_VERSIONS_PATH) or {}
 
     used_features = schema.get("used_features", [])
     if not used_features:
-        info["errors"].append(f"feature_schema.json tidak ada / used_features kosong: {FULL_SCHEMA_PATH}")
+        info["errors"].append("Full schema tidak ada / used_features kosong.")
 
     info.update({
+        "variant": chosen[0] if chosen else variant,
+        "model_path": str(chosen[1]) if chosen else None,
+        "schema_path": str(chosen[2]) if chosen else None,
+        "threshold_path": str(chosen[3]) if chosen else None,
+        "versions_path": str(chosen[4]) if chosen else None,
         "best_model_name": thr.get("best_model", "unknown"),
         "threshold_value": float(thr.get("best_threshold_by_f1", 0.5)),
         "used_features": used_features,
         "versions": ver,
         "feature_dict": fdict,
+        "calibration": None,
     })
     return pipeline, info
+
 
 def load_urlonly_assets() -> Tuple[Optional[object], Dict[str, Any]]:
     info: Dict[str, Any] = {"errors": [], "calibration": None}
@@ -361,13 +456,16 @@ def load_urlonly_assets() -> Tuple[Optional[object], Dict[str, Any]]:
         try:
             pipeline = joblib.load(URLONLY_MODEL_PATH)
         except Exception as e:
-            info["errors"].append("Gagal load model_urlonly.joblib: " + explain_sklearn_pickle_error(e, URLONLY_VERSIONS_PATH))
+            info["errors"].append("Gagal load model_urlonly.joblib: " +
+                                  explain_sklearn_pickle_error(e, URLONLY_VERSIONS_PATH))
     else:
-        info["errors"].append(f"URL-only model tidak ditemukan: {URLONLY_MODEL_PATH}")
+        info["errors"].append(
+            f"URL-only model tidak ditemukan: {URLONLY_MODEL_PATH}")
 
     used_features = schema.get("used_features", [])
     if not used_features:
-        info["errors"].append(f"feature_schema_urlonly.json tidak ada / used_features kosong: {URLONLY_SCHEMA_PATH}")
+        info["errors"].append(
+            f"feature_schema_urlonly.json tidak ada / used_features kosong: {URLONLY_SCHEMA_PATH}")
 
     info.update({
         "best_model_name": thr.get("best_model", "unknown"),
@@ -377,6 +475,7 @@ def load_urlonly_assets() -> Tuple[Optional[object], Dict[str, Any]]:
         "feature_dict": fdict,
     })
     return pipeline, info
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -408,7 +507,8 @@ def create_app() -> Flask:
     # ---------------------------
     # Load models
     # ---------------------------
-    full_model, full_info = load_full_assets()
+    full_model, full_info = load_full_assets(
+        os.getenv("PHISH_FULL_VARIANT", "auto"))
     urlonly_model, urlonly_info = load_urlonly_assets()
 
     # ---------------------------
@@ -419,14 +519,16 @@ def create_app() -> Flask:
     y_true_phish: Optional[np.ndarray] = None
     if df is not None and "label" in df.columns:
         try:
-            y_true_phish = (df["label"].astype(int) == 0).astype(int).to_numpy()
+            y_true_phish = (df["label"].astype(int) ==
+                            0).astype(int).to_numpy()
         except Exception:
             y_true_phish = None
 
     if df is not None and y_true_phish is not None and full_model is not None and full_info.get("used_features"):
         try:
             X_full = df[full_info["used_features"]]
-            cal = calibrate_phishing(full_model, X_full, y_true_phish, sample_n=2000)
+            cal = calibrate_phishing(
+                full_model, X_full, y_true_phish, sample_n=2000)
             if cal:
                 full_info["calibration"] = cal
                 full_info["threshold_value"] = float(cal["best_threshold"])
@@ -437,14 +539,16 @@ def create_app() -> Flask:
         try:
             urls = df["URL"].astype(str).fillna("").tolist()
             n = min(2000, len(urls))
-            idx = np.random.RandomState(42).choice(len(urls), size=n, replace=False)
+            idx = np.random.RandomState(42).choice(
+                len(urls), size=n, replace=False)
             feats = [compute_urlonly_features(urls[i]) for i in idx]
             X_url = pd.DataFrame(feats)
             for col in urlonly_info["used_features"]:
                 if col not in X_url.columns:
                     X_url[col] = np.nan
             X_url = X_url[urlonly_info["used_features"]]
-            cal = calibrate_phishing(urlonly_model, X_url, y_true_phish[idx], sample_n=n)
+            cal = calibrate_phishing(
+                urlonly_model, X_url, y_true_phish[idx], sample_n=n)
             if cal:
                 urlonly_info["calibration"] = cal
                 urlonly_info["threshold_value"] = float(cal["best_threshold"])
@@ -486,7 +590,8 @@ def create_app() -> Flask:
         feats = compute_urlonly_features(url)
         used = urlonly_info["used_features"]
         x = pd.DataFrame([{k: feats.get(k) for k in used}])
-        prob = _prob_phishing(urlonly_model, x, urlonly_info.get("calibration"))
+        prob = _prob_phishing(
+            urlonly_model, x, urlonly_info.get("calibration"))
         thr = float(urlonly_info.get("threshold_value", 0.5))
         pred = int(prob >= thr)
         out = {
@@ -537,7 +642,8 @@ def create_app() -> Flask:
                             true_label = "phishing" if y0 == 0 else "legitimate"
                         except Exception:
                             true_label = None
-                    feature_preview = [(k, row.get(k, None)) for k in full_info["used_features"][:12]]
+                    feature_preview = [(k, row.get(k, None))
+                                       for k in full_info["used_features"][:12]]
                     return render_template(
                         "result.html",
                         url_input=url_input,
@@ -613,12 +719,14 @@ def create_app() -> Flask:
         q = request.args.get("q", "").strip()
         label_filter = request.args.get("label", "").strip()
         page = max(int(request.args.get("page", "1")), 1)
-        page_size = max(int(request.args.get("page_size", str(PAGE_SIZE_DEFAULT))), 1)
+        page_size = max(int(request.args.get(
+            "page_size", str(PAGE_SIZE_DEFAULT))), 1)
 
         view = df
         if q and "URL" in view.columns:
             nq = normalize_url(q)
-            view = view[view["URL"].astype(str).str.lower().str.contains(nq, na=False)]
+            view = view[view["URL"].astype(
+                str).str.lower().str.contains(nq, na=False)]
 
         if label_filter in ("phishing", "legitimate") and "label" in view.columns:
             want = 0 if label_filter == "phishing" else 1
@@ -661,7 +769,7 @@ def create_app() -> Flask:
 
     @app.route("/health", methods=["GET"])
     def health():
-        return jsonify({
+        payload = {
             "ok": True,
             "dataset_loaded": df is not None,
             "full_ready": ready_full(),
@@ -675,9 +783,11 @@ def create_app() -> Flask:
                 "full": info.get("full", {}).get("errors", []),
                 "urlonly": info.get("urlonly", {}).get("errors", []),
             },
-        })
+        }
+        return jsonify(to_jsonable(payload))
 
     return app
+
 
 app = create_app()
 
