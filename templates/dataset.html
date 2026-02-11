@@ -14,8 +14,8 @@
         class="w-full sm:w-72 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
       <select name="label" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm">
         <option value="" {{ 'selected' if label_filter=='' else '' }}>All</option>
-        <option value="phishing" {{ 'selected' if label_filter=='phishing' else '' }}>Phishing (label=0)</option>
-        <option value="legitimate" {{ 'selected' if label_filter=='legitimate' else '' }}>Legitimate (label=1)</option>
+        <option value="legitimate" {{ 'selected' if label_filter=='legitimate' else '' }}>Legitimate (label=0)</option>
+        <option value="phishing" {{ 'selected' if label_filter=='phishing' else '' }}>Phishing (label=1)</option>
       </select>
       <button class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-soft hover:bg-indigo-700">
         Apply
@@ -39,7 +39,7 @@
             {% for c in cols %}
               <td class="py-2 pr-6 {{ 'break-all' if c=='URL' else '' }}">
                 {% if c=='label' %}
-                  {% if r[c]==0 %}
+                  {% if r[c]==1 %}
                     <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200">phishing</span>
                   {% else %}
                     <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">legitimate</span>
